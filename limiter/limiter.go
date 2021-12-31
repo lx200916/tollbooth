@@ -565,16 +565,19 @@ func (l *Limiter) RemoveContextValuesEntries(contextValue string, entriesForRemo
 	return l
 }
 
-func (l *Limiter) limitReachedWithTokenBucketTTL(key string, tokenBucketTTL time.Duration) bool {
+func (l *Limiter) limitReachedWithTokenBucketTTL(key string, tokenBucketTTL time.Duration,max float64) bool {
 	lmtMax := l.GetMax()
 	lmtBurst := l.GetBurst()
 	l.Lock()
 	defer l.Unlock()
+	if max==0 {
+		max=lmtMax
+	}
 
 	if _, found := l.tokenBuckets.Get(key); !found {
 		l.tokenBuckets.Set(
 			key,
-			rate.NewLimiter(rate.Limit(lmtMax), lmtBurst),
+			rate.NewLimiter(rate.Limit(max), lmtBurst),
 			tokenBucketTTL,
 		)
 	}
@@ -595,5 +598,15 @@ func (l *Limiter) LimitReached(key string) bool {
 		ttl = l.generalExpirableOptions.DefaultExpirationTTL
 	}
 
-	return l.limitReachedWithTokenBucketTTL(key, ttl)
+	return l.limitReachedWithTokenBucketTTL(key, ttl,0)
+}
+
+func (l *Limiter) LimitReachedWithMax(key string,max float64) bool {
+	ttl := l.GetTokenBucketExpirationTTL()
+
+	if ttl <= 0 {
+		ttl = l.generalExpirableOptions.DefaultExpirationTTL
+	}
+
+	return l.limitReachedWithTokenBucketTTL(key, ttl,max)
 }

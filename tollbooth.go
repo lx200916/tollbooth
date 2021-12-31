@@ -42,6 +42,13 @@ func LimitByKeys(lmt *limiter.Limiter, keys []string) *errors.HTTPError {
 
 	return nil
 }
+func LimitByKeysWithCustomMax(lmt *limiter.Limiter, keys []string,max float64) *errors.HTTPError {
+	if lmt.LimitReachedWithMax(strings.Join(keys, "|"),max) { 
+		return &errors.HTTPError{Message: lmt.GetMessage(), StatusCode: lmt.GetStatusCode()}
+	}
+
+	return nil
+}
 
 // ShouldSkipLimiter is a series of filter that decides if request should be limited or not.
 func ShouldSkipLimiter(lmt *limiter.Limiter, r *http.Request) bool {
